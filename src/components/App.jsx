@@ -1,4 +1,5 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
+//import React, { Component, useState } from 'react';
 import { Searchbar } from './Searchbar/Searchbar';
 import { fetchImages } from './SearchImage/SearchImage';
 import ImageGallery from './ImageGallery/ImageGallery';
@@ -7,60 +8,99 @@ import { Modal } from './Modal/Modal';
 import { Loader } from './Loader/Loader';
 import { animateScroll } from 'react-scroll';
 
-export class App extends Component {
-  state = {
-    imageName: '',
-    images: [],
-    page: 1,
-    per_page: 12,
-    loading: false,
-    loadMore: false,
-    error: null,
-    showModal: false,
-    largeImageURL: 'largeImageURL',
-    id: null,
-  };
+export const App = () => {
+  const [imageName, setImageName] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  //const [per_page, setPer_page] = useState(12);
+  const [loading, setLoading] = useState(false);
+  const [loadMore, setLoadMore] = useState(false);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  //const [id, setId] = useState(null);
+  const per_page = 12;
 
-  componentDidUpdate(prevProps, prevState) {
-    const { imageName, page } = this.state;
-    if (prevState.imageName !== imageName || prevState.page !== page) {
-      this.getImages(imageName, page);
-    }
-  }
+  //export class App extends Component {
+  // state = {
+  // imageName: '',
+  //  images: [],
+  // page: 1,
+  // per_page: 12,
+  // loading: false,
+  // loadMore: false,
+  //  error: null,
+  //  showModal: false,
+  //   largeImageURL: 'largeImageURL',
+  //  id: null,
+  // };
 
-  getImages = async (im, page) => {
-    this.setState({ loading: true });
+  //componentDidUpdate(prevProps, prevState) {
+  //  const { imageName, page } = this.state;
+  //  if (prevState.imageName !== imageName || prevState.page !== page) {
+  //   this.getImages(imageName, page);
+  // }
+  // }
+
+  useEffect(() => {
+    getImages(imageName, page);
+  }, [imageName, page]);
+
+  const getImages = async (im, page) => {
+    // this.setState({ loading: true });
     if (!im) {
       return;
     }
+    setLoading(true);
     try {
       const { hits, totalHits } = await fetchImages(im, page);
-      this.setState(prevState => ({
-        images: [...prevState.images, ...hits],
-        loadMore: this.state.page < Math.ceil(totalHits / this.state.per_page),
-      }));
+      if (hits.length === 0) {
+        return alert('Sorry, nothin found');
+      }
+
+      //this.setState(prevState => ({
+      //  images: [...prevState.images, ...hits],
+      // loadMore: this.state.page < Math.ceil(totalHits / this.state.per_page),
+      // }));
+      //} catch (error) {
+      //  this.setState({ error: error.message });
+      // } finally {
+      //   this.setState({ loading: false });
+      //  }
+      // };
+
+      setImages(prevImages => [...prevImages, ...hits]);
+      setLoadMore(page < Math.ceil(totalHits / per_page));
     } catch (error) {
-      this.setState({ error: error.message });
+      setError({ error });
+      //this.setState({ error: error.message });
     } finally {
-      this.setState({ loading: false });
+      setLoading(false);
+      //this.setState({ loading: false });
     }
   };
-
-  handleFormSubmit = imageName => {
-    this.setState({
-      imageName,
-      images: [],
-      page: 1,
-      loadMore: false,
-    });
+  const handleFormSubmit = imageName => {
+    // this.setState({
+    // imageName,
+    // images: [],
+    //  page: 1,
+    //  loadMore: false,
+    setImageName(imageName);
+    setImages([]);
+    setPage(1);
+    setLoadMore(false);
   };
 
-  onLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-    this.scrollOnMoreButton();
+  const onLoadMore = () => {
+    //this.setState(prevState => ({ page: prevState.page + 1 }));
+    //this.scrollOnMoreButton();
+    setLoading(true);
+    setPage(prevPage => prevPage + 1);
+    //this.setState(prevState => ({ page: prevState.page + 1 }));
+    scrollOnMoreButton();
   };
 
-  scrollOnMoreButton = () => {
+  const scrollOnMoreButton = () => {
     animateScroll.scrollToBottom({
       duration: 1000,
       delay: 10,
@@ -68,38 +108,39 @@ export class App extends Component {
     });
   };
 
-  openModal = largeImageURL => {
-    this.setState({
-      showModal: true,
-      largeImageURL: largeImageURL,
-    });
+  const openModal = largeImageURL => {
+    //this.setState({
+    //  showModal: true,
+    setShowModal(true);
+    setLargeImageURL(largeImageURL);
   };
 
-  closeModal = () => {
-    this.setState({
-      showModal: false,
-    });
+  const closeModal = () => {
+    //this.setState({
+    //showModal: false,
+    setShowModal(false);
   };
 
-  render() {
-    const { images, loading, loadMore, page, showModal, largeImageURL } =
-      this.state;
-    return (
-      <>
-        <Searchbar onSubmit={this.handleFormSubmit} />
+  // render() {
+  // const { images, loading, loadMore, page, showModal, largeImageURL } =
+  //   this.state;
+  return (
+    <>
+      <Searchbar onSubmit={handleFormSubmit} />
 
-        {loading ? (
-          <Loader />
-        ) : (
-          <ImageGallery images={images} openModal={this.openModal} />
-        )}
+      {loading ? (
+        <Loader />
+      ) : (
+        <ImageGallery images={images} openModal={openModal} />
+      )}
 
-        {loadMore && <Button onLoadMore={this.onLoadMore} page={page} />}
+      {error && <p>something went wrong</p>}
 
-        {showModal && (
-          <Modal largeImageURL={largeImageURL} onClose={this.closeModal} />
-        )}
-      </>
-    );
-  }
-}
+      {loadMore && <Button onLoadMore={onLoadMore} page={page} />}
+
+      {showModal && (
+        <Modal largeImageURL={largeImageURL} onClose={closeModal} />
+      )}
+    </>
+  );
+};
